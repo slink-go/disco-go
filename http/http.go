@@ -148,13 +148,17 @@ func post(client *http.Client, ctx context.Context, url string, data map[string]
 		b = []byte("{}")
 	}
 	resp, err := client.Post(url, applicationJson, bytes.NewBuffer(b))
+	rcode := responseCode(resp)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, rcode, NewHttpError(rcode, err)
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
 	}(resp.Body)
 	b, e := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 400 {
+		return nil, rcode, NewHttpError(rcode, errors.New(string(b)))
+	}
 	return b, resp.StatusCode, e
 }
 func get(client *http.Client, ctx context.Context, queryUrl string, params map[string]any) (result []byte, code int, err error) {
@@ -175,13 +179,17 @@ func get(client *http.Client, ctx context.Context, queryUrl string, params map[s
 	}
 
 	resp, err := client.Get(queryUrl)
+	rcode := responseCode(resp)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, rcode, NewHttpError(rcode, err)
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
 	}(resp.Body)
 	b, e := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 400 {
+		return nil, rcode, NewHttpError(rcode, errors.New(string(b)))
+	}
 	return b, resp.StatusCode, e
 }
 
@@ -196,6 +204,9 @@ func withRetry(call ServiceCall, retries uint, delay time.Duration) ServiceCall 
 		for r = 0; ; r++ {
 			response, code, err := call(client, ctx, url, args)
 			if err == nil || r >= retries {
+				return response, code, err
+			}
+			if code == 401 || code == 403 {
 				return response, code, err
 			}
 
@@ -254,6 +265,16 @@ func withBreaker(call ServiceCall, failureThreshold uint) ServiceCall {
 		consecutiveFailures = 0
 		return response, code, nil
 	}
+}
+
+// endregion
+// region - helpers
+
+func responseCode(response *http.Response) int {
+	if response == nil {
+		return http.StatusInternalServerError
+	}
+	return response.StatusCode
 }
 
 // endregion

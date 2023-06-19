@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/slink-go/disco-go/config"
 	"github.com/slink-go/disco-go/http"
@@ -91,7 +92,7 @@ func (dc *discoClientImpl) join(request *disco.JoinRequest) (*disco.JoinResponse
 		m,
 	)
 	if err != nil {
-		logger.Warning("[join] error: %s", err.Error())
+		//logger.Warning("[join] error: %s", err.Error())
 		return nil, err
 	}
 
@@ -211,10 +212,14 @@ func (dc *discoClientImpl) oneOf(action string, call serviceCall, urlTemplate st
 		var b []byte
 		b, code, err = call(fmt.Sprintf(urlTemplate, ep), args)
 		if err != nil {
-			logger.Warning("[%s][%s] service call error: %s", action, dc.clientId, err.Error())
+			if errors.Is(err, &http.HttpError{}) {
+				logger.Warning("[%s][%s] service call error (%d): %s", action, dc.clientId, code, err.Error())
+			} else {
+				logger.Warning("[%s][%s] service call error: %s", action, dc.clientId, err.Error())
+			}
 			continue
 		}
-		logger.Debug("[%s][%s] response: %s", action, dc.clientId, strings.TrimSpace(string(b)))
+		logger.Debug("[%s][%s] response: %d, %s", action, dc.clientId, code, strings.TrimSpace(string(b)))
 		return b, code, err
 	}
 	return nil, code, err
