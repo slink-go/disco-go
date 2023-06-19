@@ -1,6 +1,6 @@
 package client
 
-import "github.com/ws-slink/disco/common/api"
+import "github.com/slink-go/disco/common/api"
 
 type DiscoClient interface {
 

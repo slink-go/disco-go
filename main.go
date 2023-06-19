@@ -1,53 +1,20 @@
 package main
 
 import (
-	"disco-go/client"
-	"disco-go/config"
-	"disco-go/http"
 	"fmt"
-	"github.com/ws-slink/disco/common/api"
-	"github.com/ws-slink/disco/common/util/logger"
+	"github.com/slink-go/disco-go/client"
+	"github.com/slink-go/disco-go/config"
+	"github.com/slink-go/disco-go/http"
+	"github.com/slink-go/disco/common/api"
+	"github.com/slink-go/logger"
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 )
 
 const baseUrl = "http://localhost:8080"
-
-func getToken(tenant string) (string, error) {
-	client := http.
-		ClientBuilder("").
-		WithTimeout(time.Second).
-		WithBreaker(3).
-		WithRetry(10, 1*time.Second).
-		Build()
-	data, _, err := client.Get(fmt.Sprintf("%s/api/token/%s", baseUrl, tenant), nil)
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(data)), nil
-}
-func testGetToken(wg *sync.WaitGroup) {
-	v, err := getToken("test")
-	if err != nil {
-		logger.Warning("could not get token (%T): %s", err, err.Error())
-	} else {
-		logger.Notice("got token: %s", v)
-	}
-	if wg != nil {
-		wg.Done()
-	}
-}
-func testWrappers() {
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-	go testGetToken(&wg)
-	go testGetToken(&wg)
-	wg.Wait()
-}
 
 func main() {
 
@@ -115,6 +82,19 @@ func main() {
 	time.Sleep(time.Second)
 }
 
+func getToken(tenant string) (string, error) {
+	data, _, err := http.
+		ClientBuilder("").
+		WithTimeout(time.Second).
+		WithBreaker(3).
+		WithRetry(10, 1*time.Second).
+		Build().
+		Get(fmt.Sprintf("%s/api/token/%s", baseUrl, tenant), nil)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(data)), nil
+}
 func handleSignals(signals ...os.Signal) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, signals...)

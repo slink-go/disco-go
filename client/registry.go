@@ -3,8 +3,8 @@ package client
 import (
 	"container/ring"
 	"fmt"
-	disco "github.com/ws-slink/disco/common/api"
-	"github.com/ws-slink/disco/common/util/logger"
+	disco "github.com/slink-go/disco/common/api"
+	"github.com/slink-go/logger"
 	"sync"
 )
 

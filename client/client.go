@@ -1,12 +1,12 @@
 package client
 
 import (
-	"disco-go/config"
-	"disco-go/http"
 	"encoding/json"
 	"fmt"
-	disco "github.com/ws-slink/disco/common/api"
-	"github.com/ws-slink/disco/common/util/logger"
+	"github.com/slink-go/disco-go/config"
+	"github.com/slink-go/disco-go/http"
+	disco "github.com/slink-go/disco/common/api"
+	"github.com/slink-go/logger"
 	"os"
 	"os/signal"
 	"strings"

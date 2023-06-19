@@ -1,8 +1,11 @@
-module github.com/ws-slink/disco-go
+module github.com/slink-go/disco-go
 
 go 1.20
 
-require github.com/ws-slink/disco/common v0.0.0-20230617080238-9be42bdc48bd
+require (
+	github.com/slink-go/disco/common v0.0.0-20230619091337-ec0ab3fcf597
+	github.com/slink-go/logger v0.0.1
+)
 
 require (
 	github.com/joho/godotenv v1.5.1 // indirect

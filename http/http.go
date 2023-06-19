@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ws-slink/disco/common/util/logger"
+	"github.com/slink-go/logger"
 	"io"
 	"math/rand"
 	"net/http"
@@ -257,55 +257,3 @@ func withBreaker(call ServiceCall, failureThreshold uint) ServiceCall {
 }
 
 // endregion
-
-//func httpPostJson[T any, R any](url string, request *T) (response *R, err error) {
-//	data, err := json.Marshal(request)
-//	if err != nil {
-//		return nil, err
-//	}
-//	resp, err := http.Post(url, applicationJson, bytes.NewBuffer(data))
-//	if err != nil {
-//		return nil, err
-//	}
-//	defer resp.Body.Close()
-//
-//	var result R
-//	if err = json.NewDecoder(resp.Body).Decode(&result); err != nil {
-//		return nil, err
-//	}
-//
-//	response = &result
-//	return
-//}
-//func httpGetJson[T any, R any](url string, request *T) (response *R, err error) {
-//	return nil, nil
-//}
-
-//var result R
-//if err = json.NewDecoder(resp.Body).Decode(&result); err != nil {
-//	return nil, err
-//}
-//
-//response = &result
-//return
-//return nil, nil
-
-//	func withTimeout(call ServiceCall, timeout time.Duration) ServiceCall {
-//		return func(client *http.Client, ctx context.Context, url string, args map[string]any) ([]byte, error) {
-//			chres := make(chan []byte)
-//			cherr := make(chan error)
-//			go func() {
-//				res, err := call(client, ctx, url, args)
-//				chres <- res
-//				cherr <- err
-//			}()
-//			select {
-//			case res := <-chres:
-//				err := <-cherr
-//				return res, err
-//			case <-ctx.Done():
-//				logger.Debug("cancel")
-//				return nil, ctx.Err()
-//			}
-//		}
-//	}

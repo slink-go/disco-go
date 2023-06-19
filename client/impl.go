@@ -1,7 +1,7 @@
 package client
 
 import (
-	"github.com/ws-slink/disco/common/api"
+	"github.com/slink-go/disco/common/api"
 	"strings"
 )
 
