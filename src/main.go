@@ -5,6 +5,7 @@ import (
 	"disco-go/config"
 	"disco-go/http"
 	"fmt"
+	"github.com/ws-slink/disco/common/api"
 	"github.com/ws-slink/disco/common/util/logger"
 	"os"
 	"os/signal"
@@ -55,49 +56,60 @@ func main() {
 		panic(err)
 	}
 
-	//client := http.
-	//	ClientBuilder(token).
-	//	WithTimeout(time.Second).
-	//	WithBreaker(3).
-	//	WithRetry(10, 1*time.Second).
-	//	Build()
-	//data, err := client.Get(fmt.Sprintf("%s/api/list", baseUrl), nil)
-	//if err != nil {
-	//	fmt.Fprintf(os.Stderr, "%s", err.Error())
-	//} else {
-	//	fmt.Printf("%s\n", data)
-	//}
-
-	//waitSec := 25
-	threads := 10
+	threads := 1
 
 	i := 0
+	var registry client.DiscoRegistry
 	for i = 0; i < threads; i++ {
 		go func(idx int) {
-			logger.Notice(">>> config")
 			cfg := config.
 				Default().
 				WithToken(token).
-				WithName("DISCO").
+				WithName("TEST").
 				WithDisco([]string{"http://localhost:8080"}).
 				WithEndpoints([]string{fmt.Sprintf("http://localhost:808%d", idx+1)}).
 				WithBreaker(3).
 				WithRetry(5, 2*time.Second).
 				//WithTimeout(5 * time.Second).
 				Get()
-			logger.Notice(">>> init")
-			_, _ = client.NewDiscoHttpClient(cfg)
-			//if err != nil {
-			//	panic(err)
-			//}
-			//time.Sleep(time.Duration(waitSec) * time.Second)
-			//logger.Notice(">>> leave")
-			//err = clnt.Leave()
-			//if err != nil {
-			//	panic(err)
-			//}
+			clnt, _ := client.NewDiscoHttpClient(cfg)
+			registry = clnt.Registry()
 		}(i)
 	}
+
+	time.Sleep(50 * time.Millisecond)
+	registry.List()
+
+	go func() {
+		t := time.NewTicker(3 * time.Second)
+		for {
+			select {
+			case _ = <-t.C:
+				cc, err := registry.Get("DISCO")
+				if err != nil {
+					logger.Warning("%s", err.Error())
+				} else {
+					ep, _ := cc.Endpoint(api.HttpEndpoint)
+					logger.Notice("  > DISCO client: %s: %s", cc.ClientId(), ep)
+				}
+			default:
+			}
+		}
+	}()
+
+	//go func() {
+	//	t := time.NewTicker(30 * time.Second)
+	//	for {
+	//		select {
+	//		case _ = <-t.C:
+	//			logger.Notice("     >> clients list:")
+	//			for _, c := range registry.List() {
+	//				logger.Notice("         %s: %s", c.ClientId(), c.State())
+	//			}
+	//		default:
+	//		}
+	//	}
+	//}()
 
 	handleSignals(syscall.SIGINT, syscall.SIGTERM)
 	time.Sleep(time.Second)
