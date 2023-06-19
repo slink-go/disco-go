@@ -1,4 +1,4 @@
-module disco-go
+module github.com/ws-slink/disco-go
 
 go 1.20
 
