@@ -8,6 +8,7 @@ import (
 	disco "github.com/slink-go/disco/common/api"
 	http "github.com/slink-go/httpclient"
 	"github.com/slink-go/logger"
+	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
@@ -124,6 +125,8 @@ func (dc *discoClientImpl) run() {
 			}
 			if pong.Response == disco.PongTypeChanged {
 				logger.Debug("[run][%s] update clients list", dc.clientId)
+				// random jitter
+				time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
 				err = dc.sync()
 				if err != nil {
 					logger.Warning("sync error: %s", err.Error())

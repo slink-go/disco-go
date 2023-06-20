@@ -5,6 +5,7 @@ import (
 	"fmt"
 	disco "github.com/slink-go/disco/common/api"
 	"github.com/slink-go/logger"
+	"strings"
 	"sync"
 )
 
@@ -37,6 +38,7 @@ func (r *registry) List() []Client {
 	return r.clientList
 }
 func (r *registry) Get(service string) (Client, error) {
+	service = strings.ToUpper(service)
 	r.RLock()
 	defer r.RUnlock()
 	v, ok := r.clientRing[service]
