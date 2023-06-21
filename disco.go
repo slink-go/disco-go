@@ -38,7 +38,7 @@ func NewDiscoHttpClient(config *DiscoClientConfig) (DiscoClient, error) {
 }
 
 func buildHttpClient(config *DiscoClientConfig) http.Client {
-	clnt := http.ClientBuilder(config.Token)
+	clnt := http.NewTokenAuthClient(config.Token)
 	if config.ClientTimeout > 0 {
 		clnt = clnt.WithTimeout(config.ClientTimeout)
 	}
