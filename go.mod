@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/slink-go/disco/common v0.0.0-20230620144312-5da4585ca626
-	github.com/slink-go/httpclient v0.0.0-20230619111902-c3f5b86bc498
+	github.com/slink-go/httpclient v0.0.3
 	github.com/slink-go/logger v0.0.1
 )
 
