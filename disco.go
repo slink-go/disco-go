@@ -1,10 +1,9 @@
-package client
+package disco_go
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/slink-go/disco-go/config"
 	disco "github.com/slink-go/disco/common/api"
 	http "github.com/slink-go/httpclient"
 	"github.com/slink-go/logger"
@@ -16,7 +15,7 @@ import (
 	"time"
 )
 
-func NewDiscoHttpClient(config *config.DiscoClientConfig) (DiscoClient, error) {
+func NewDiscoHttpClient(config *DiscoClientConfig) (DiscoClient, error) {
 	dClient := &discoClientImpl{
 		config:     config,
 		httpClient: buildHttpClient(config),
@@ -38,7 +37,7 @@ func NewDiscoHttpClient(config *config.DiscoClientConfig) (DiscoClient, error) {
 	return dClient, nil
 }
 
-func buildHttpClient(config *config.DiscoClientConfig) http.Client {
+func buildHttpClient(config *DiscoClientConfig) http.Client {
 	clnt := http.ClientBuilder(config.Token)
 	if config.ClientTimeout > 0 {
 		clnt = clnt.WithTimeout(config.ClientTimeout)
@@ -53,7 +52,7 @@ func buildHttpClient(config *config.DiscoClientConfig) http.Client {
 }
 
 type discoClientImpl struct {
-	config       *config.DiscoClientConfig
+	config       *DiscoClientConfig
 	httpClient   http.Client
 	clientId     string
 	pingInterval time.Duration

@@ -1,4 +1,4 @@
-package client
+package disco_go
 
 import (
 	"container/ring"

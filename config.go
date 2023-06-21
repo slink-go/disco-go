@@ -1,4 +1,4 @@
-package config
+package disco_go
 
 import "time"
 
@@ -14,7 +14,7 @@ type DiscoClientConfig struct {
 	ClientRetryInterval  time.Duration
 }
 
-func Default() *DiscoClientConfig {
+func DefaultConfig() *DiscoClientConfig {
 	return &DiscoClientConfig{
 		Token:                "",
 		DiscoEndpoints:       nil,
@@ -59,8 +59,5 @@ func (dc *DiscoClientConfig) WithBreaker(threshold uint) *DiscoClientConfig {
 func (dc *DiscoClientConfig) WithRetry(attempts uint, delay time.Duration) *DiscoClientConfig {
 	dc.ClientRetryAttempts = attempts
 	dc.ClientRetryInterval = delay
-	return dc
-}
-func (dc *DiscoClientConfig) Get() *DiscoClientConfig {
 	return dc
 }

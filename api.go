@@ -1,4 +1,4 @@
-package client
+package disco_go
 
 import "github.com/slink-go/disco/common/api"
 
