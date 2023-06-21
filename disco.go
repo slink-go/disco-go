@@ -142,7 +142,9 @@ func (dc *discoClientImpl) ping() (*disco.Pong, error) {
 		nil,
 	)
 	if code == 404 {
-		_ = dc.leave()
+		go func() {
+			_ = dc.leave()
+		}()
 		_, err = dc.join(dc.joinRequest)
 		if err != nil {
 			logger.Warning("[ping] could not reconnect: %s", err.Error())
