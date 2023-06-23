@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/slink-go/disco/common/api"
 	"github.com/slink-go/httpclient"
+	"github.com/slink-go/logger"
 	"net/http"
 )
 
@@ -27,27 +28,38 @@ type lbHttpClient struct {
 	client   httpclient.Client
 }
 
-func (c *lbHttpClient) geturl(inputUrl string) (string, error) {
+func (c *lbHttpClient) geturl(inputUrl string) (url string, err error) {
 	proto, svc, path, _, err := parseUrl(inputUrl)
 	if err != nil {
-		return inputUrl, err
+		url = inputUrl
+		logger.Debug("effective url: %s", url)
+		return
 	}
 	clnt, err := c.registry.Get(svc)
 	if err != nil || clnt == nil {
-		return inputUrl, err
+		url = inputUrl
+		logger.Debug("effective url: %s", url)
+		return
 	}
 	u, err := clnt.Endpoint(proto)
 	if err != nil {
-		return inputUrl, err
+		url = inputUrl
+		logger.Debug("effective url: %s", url)
+		return
 	}
 	if proto == api.UnknownEndpoint {
 		proto = api.HttpEndpoint
 	}
 	if proto != api.HttpEndpoint && proto != api.HttpsEndpoint {
-		return "", fmt.Errorf("invalid protocol: %v", proto)
+		url = ""
+		err = fmt.Errorf("invalid protocol: %v", proto)
+		logger.Debug("effective url: %s", url)
+		return
 	}
 	// TODO: handle trailing "/" in endpoint or missing "/" in path's beginning
-	return fmt.Sprintf("%s/%s", u, path), nil
+	url = fmt.Sprintf("%s/%s", u, path)
+	logger.Debug("effective url: %s", url)
+	return
 }
 
 func (c *lbHttpClient) Get(url string) ([]byte, int, error) {
