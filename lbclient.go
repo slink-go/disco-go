@@ -40,6 +40,9 @@ func (c *lbHttpClient) geturl(inputUrl string) (string, error) {
 	if err != nil {
 		return inputUrl, err
 	}
+	if proto == api.UnknownEndpoint {
+		proto = api.HttpEndpoint
+	}
 	if proto != api.HttpEndpoint && proto != api.HttpsEndpoint {
 		return "", fmt.Errorf("invalid protocol: %v", proto)
 	}
