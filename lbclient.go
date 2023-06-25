@@ -32,19 +32,19 @@ func (c *lbHttpClient) geturl(inputUrl string) (url string, err error) {
 	proto, svc, path, _, err := parseUrl(inputUrl)
 	if err != nil {
 		url = inputUrl
-		logger.Debug("effective url: %s", url)
+		logger.Debug("[disco-go] effective url: %s", url)
 		return
 	}
 	clnt, err := c.registry.Get(svc)
 	if err != nil || clnt == nil {
 		url = inputUrl
-		logger.Debug("effective url: %s", url)
+		logger.Debug("[disco-go] effective url: %s", url)
 		return
 	}
 	u, err := clnt.Endpoint(proto)
 	if err != nil {
 		url = inputUrl
-		logger.Debug("effective url: %s", url)
+		logger.Debug("[disco-go] effective url: %s", url)
 		return
 	}
 	if proto == api.UnknownEndpoint {
@@ -53,12 +53,12 @@ func (c *lbHttpClient) geturl(inputUrl string) (url string, err error) {
 	if proto != api.HttpEndpoint && proto != api.HttpsEndpoint {
 		url = ""
 		err = fmt.Errorf("invalid protocol: %v", proto)
-		logger.Debug("effective url: %s", url)
+		logger.Debug("[disco-go] effective url: %s", url)
 		return
 	}
 	// TODO: handle trailing "/" in endpoint or missing "/" in path's beginning
 	url = fmt.Sprintf("%s/%s", u, path)
-	logger.Debug("effective url: %s", url)
+	logger.Debug("[disco-go] effective url: %s", url)
 	return
 }
 

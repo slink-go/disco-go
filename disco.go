@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -59,6 +60,7 @@ type discoClientImpl struct {
 	stopChn      chan struct{}
 	joinRequest  *disco.JoinRequest
 	registry     DiscoRegistry
+	mutex        sync.Mutex
 }
 
 func (dc *discoClientImpl) Leave() error {
@@ -108,15 +110,17 @@ func (dc *discoClientImpl) join(request *disco.JoinRequest) (*disco.JoinResponse
 }
 func (dc *discoClientImpl) run() {
 	dc.stopChn = make(chan struct{})
-	ticker := time.NewTicker(dc.pingInterval)
+	pingTicker := time.NewTicker(dc.pingInterval)
+	syncTicker := time.NewTicker(time.Duration(10) * dc.pingInterval)
 	logger.Debug("[run][%s] started", dc.clientId)
 	for {
 		select {
 		case <-dc.stopChn:
 			logger.Debug("[run][%s] finished", dc.clientId)
-			ticker.Stop()
+			pingTicker.Stop()
+			syncTicker.Stop()
 			return
-		case _ = <-ticker.C:
+		case _ = <-pingTicker.C:
 			pong, err := dc.ping()
 			if err != nil {
 				logger.Warning("ping error: %s", err.Error())
@@ -130,6 +134,12 @@ func (dc *discoClientImpl) run() {
 				if err != nil {
 					logger.Warning("sync error: %s", err.Error())
 				}
+			}
+		case _ = <-syncTicker.C:
+			time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+			err := dc.sync()
+			if err != nil {
+				logger.Warning("sync error: %s", err.Error())
 			}
 		}
 	}
@@ -170,6 +180,9 @@ func (dc *discoClientImpl) leave() error {
 	return err
 }
 func (dc *discoClientImpl) sync() error {
+	dc.mutex.Lock()
+	defer dc.mutex.Unlock()
+
 	res, _, err := dc.oneOf(
 		"list",
 		dc.httpClient.Get,
