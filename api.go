@@ -25,6 +25,9 @@ type DiscoRegistry interface {
 
 	// Sync - synchronize registrations data
 	Sync(clients []Client)
+
+	// Reset - reset local discovery cache
+	Reset()
 }
 
 type Client interface {
@@ -35,7 +38,7 @@ type Client interface {
 	Field(key string) (any, bool)
 }
 
-type serviceCall func(string, map[string]any) ([]byte, int, error)
+type serviceCall func(url string, data map[string]any, headers map[string]string) ([]byte, map[string]string, int, error)
 
 const (
 	joinUrlTemplate  = "%s/api/join"

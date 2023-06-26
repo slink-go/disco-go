@@ -54,7 +54,7 @@ func (r *registry) Sync(clients []Client) {
 	defer r.Unlock()
 
 	for _, v := range clients {
-		logger.Debug("[sync] %s %s", v.ClientId(), v.State())
+		logger.Debug("[sync] %s (%s) %s", v.ClientId(), v.ServiceId(), v.State())
 	}
 
 	r.clientList = clients
@@ -76,4 +76,8 @@ func (r *registry) Sync(clients []Client) {
 		}
 	}
 
+}
+func (r *registry) Reset() {
+	r.clientList = []Client{}
+	r.clientRing = map[string]*ring.Ring{}
 }

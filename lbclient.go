@@ -10,8 +10,8 @@ import (
 )
 
 type LoadBalancingHttpClient interface {
-	Get(url string) ([]byte, int, error)
-	GetWithParams(url string, params map[string]any) ([]byte, int, error)
+	Get(url string, headers map[string]string) ([]byte, map[string]string, int, error)
+	GetWithParams(url string, params map[string]any, headers map[string]string) ([]byte, map[string]string, int, error)
 	//Post(url string, data map[string]any) ([]byte, int, error)
 	//PostData(url string, data []byte) ([]byte, int, error)
 }
@@ -62,24 +62,24 @@ func (c *lbHttpClient) geturl(inputUrl string) (url string, err error) {
 	return
 }
 
-func (c *lbHttpClient) Get(url string) ([]byte, int, error) {
+func (c *lbHttpClient) Get(url string, headers map[string]string) ([]byte, map[string]string, int, error) {
 	u, err := c.geturl(url)
 	if err != nil && u == "" {
-		return nil, http.StatusInternalServerError, err
+		return nil, nil, http.StatusInternalServerError, err
 	}
-	b, code, err := c.client.Get(u, nil)
+	b, hdr, code, err := c.client.Get(u, nil, nil)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, hdr, http.StatusInternalServerError, err
 	}
 	if code >= 400 {
-		return nil, code, errors.New(string(b))
+		return nil, hdr, code, errors.New(string(b))
 	}
-	return b, code, nil
+	return b, hdr, code, nil
 }
-func (c *lbHttpClient) GetWithParams(inputUrl string, params map[string]any) ([]byte, int, error) {
+func (c *lbHttpClient) GetWithParams(inputUrl string, params map[string]any, headers map[string]string) ([]byte, map[string]string, int, error) {
 	p := ""
 	for k, v := range params {
 		p = fmt.Sprintf("%v=%v&%s", k, v, p)
 	}
-	return c.Get(fmt.Sprintf("%s/%s", inputUrl, p))
+	return c.Get(fmt.Sprintf("%s/%s", inputUrl, p), headers)
 }

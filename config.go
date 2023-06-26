@@ -1,6 +1,10 @@
 package disco_go
 
-import "time"
+import (
+	"os"
+	"strings"
+	"time"
+)
 
 type DiscoClientConfig struct {
 	Token                string
@@ -14,7 +18,7 @@ type DiscoClientConfig struct {
 	ClientRetryInterval  time.Duration
 }
 
-func DefaultConfig() *DiscoClientConfig {
+func EmptyConfig() *DiscoClientConfig {
 	return &DiscoClientConfig{
 		Token:                "",
 		DiscoEndpoints:       nil,
@@ -25,6 +29,25 @@ func DefaultConfig() *DiscoClientConfig {
 		ClientBreakThreshold: 0,
 		ClientRetryAttempts:  0,
 		ClientRetryInterval:  0,
+	}
+}
+
+func DefaultConfig() *DiscoClientConfig {
+	ep := getEnvStrings("DISCO_ENDPOINTS", ",")
+	if ep == nil {
+		ep = []string{"http://localhost:8080"}
+	}
+	t := getEnvString("DISCO_TOKEN")
+	return &DiscoClientConfig{
+		Token:                t,
+		DiscoEndpoints:       ep,
+		ClientName:           "",
+		ClientEndpoints:      nil,
+		ClientMeta:           nil,
+		ClientTimeout:        0,
+		ClientBreakThreshold: 0,
+		ClientRetryAttempts:  2,
+		ClientRetryInterval:  2 * time.Second,
 	}
 }
 
@@ -60,4 +83,20 @@ func (dc *DiscoClientConfig) WithRetry(attempts uint, delay time.Duration) *Disc
 	dc.ClientRetryAttempts = attempts
 	dc.ClientRetryInterval = delay
 	return dc
+}
+
+func getEnvStrings(key, separator string) []string {
+	v := os.Getenv(key)
+	if v == "" {
+		return nil
+	}
+	var result []string
+	parts := strings.Split(v, separator)
+	for _, p := range parts {
+		result = append(result, strings.TrimSpace(p))
+	}
+	return result
+}
+func getEnvString(key string) string {
+	return os.Getenv(key)
 }
