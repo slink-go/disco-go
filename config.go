@@ -36,9 +36,6 @@ func EmptyConfig() *DiscoClientConfig {
 
 func DefaultConfig() *DiscoClientConfig {
 	ep := getEnvStrings("DISCO_ENDPOINTS", ",")
-	if ep == nil {
-		ep = []string{"http://localhost:8080"}
-	}
 	t := getEnvString("DISCO_TOKEN")
 	return &DiscoClientConfig{
 		Token:                  t,
