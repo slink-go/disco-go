@@ -63,7 +63,6 @@ func buildHttpClient(config *DiscoClientConfig) httpc.Client {
 	if !config.PerformSslVerification {
 		clnt = clnt.SkipTlsVerify()
 	}
-
 	if config.Token != "" {
 		clnt = clnt.WithBearerAuth(config.Token)
 	} else if config.Login != "" && config.Password != "" {
@@ -71,7 +70,6 @@ func buildHttpClient(config *DiscoClientConfig) httpc.Client {
 	} else {
 		clnt = clnt.WithNoAuth()
 	}
-
 	if config.ClientTimeout > 0 {
 		clnt = clnt.WithTimeout(config.ClientTimeout)
 	}

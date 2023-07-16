@@ -37,7 +37,6 @@ func EmptyConfig() *DiscoClientConfig {
 		PerformSslVerification: true,
 	}
 }
-
 func DefaultConfig() *DiscoClientConfig {
 	ep := getEnvStrings("DISCO_ENDPOINTS", ",")
 	t := getEnvString("DISCO_TOKEN")
@@ -58,11 +57,11 @@ func DefaultConfig() *DiscoClientConfig {
 		PerformSslVerification: true,
 	}
 }
+
 func (dc *DiscoClientConfig) SkipSslVerify() *DiscoClientConfig {
 	dc.PerformSslVerification = false
 	return dc
 }
-
 func (dc *DiscoClientConfig) WithToken(token string) *DiscoClientConfig {
 	dc.Token = token
 	return dc
