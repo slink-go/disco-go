@@ -59,12 +59,19 @@ func NewDiscoHttpClientPanicOnAuthError(config *DiscoClientConfig) DiscoClient {
 }
 
 func buildHttpClient(config *DiscoClientConfig) httpc.Client {
-	var clnt *httpc.HttpClient
-	if config.PerformSslVerification {
-		clnt = httpc.NewTokenAuthClient(config.Token)
-	} else {
-		clnt = httpc.NewTokenAuthClientSkipTlsVerify(config.Token)
+	clnt := httpc.New()
+	if !config.PerformSslVerification {
+		clnt = clnt.SkipTlsVerify()
 	}
+
+	if config.Token != "" {
+		clnt = clnt.WithBearerAuth(config.Token)
+	} else if config.Login != "" && config.Password != "" {
+		clnt = clnt.WithBasicAuth(config.Login, config.Password)
+	} else {
+		clnt = clnt.WithNoAuth()
+	}
+
 	if config.ClientTimeout > 0 {
 		clnt = clnt.WithTimeout(config.ClientTimeout)
 	}

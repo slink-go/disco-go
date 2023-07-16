@@ -7,6 +7,8 @@ import (
 )
 
 type DiscoClientConfig struct {
+	Login                  string
+	Password               string
 	Token                  string
 	DiscoEndpoints         []string
 	ClientName             string
@@ -21,6 +23,8 @@ type DiscoClientConfig struct {
 
 func EmptyConfig() *DiscoClientConfig {
 	return &DiscoClientConfig{
+		Login:                  "",
+		Password:               "",
 		Token:                  "",
 		DiscoEndpoints:         nil,
 		ClientName:             "",
@@ -37,7 +41,11 @@ func EmptyConfig() *DiscoClientConfig {
 func DefaultConfig() *DiscoClientConfig {
 	ep := getEnvStrings("DISCO_ENDPOINTS", ",")
 	t := getEnvString("DISCO_TOKEN")
+	l := getEnvString("DISCO_LOGIN")
+	p := getEnvString("DISCO_PASSWORD")
 	return &DiscoClientConfig{
+		Login:                  l,
+		Password:               p,
 		Token:                  t,
 		DiscoEndpoints:         ep,
 		ClientName:             "",
@@ -57,6 +65,11 @@ func (dc *DiscoClientConfig) SkipSslVerify() *DiscoClientConfig {
 
 func (dc *DiscoClientConfig) WithToken(token string) *DiscoClientConfig {
 	dc.Token = token
+	return dc
+}
+func (dc *DiscoClientConfig) WithAuth(login, password string) *DiscoClientConfig {
+	dc.Login = login
+	dc.Password = password
 	return dc
 }
 func (dc *DiscoClientConfig) WithDisco(endpoints []string) *DiscoClientConfig {
