@@ -1,0 +1,1 @@
+- config: do not advertise self to discovery & to other peers (if we need only to fetch registered services from discovery)

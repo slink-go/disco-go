@@ -7,28 +7,30 @@ import (
 )
 
 type DiscoClientConfig struct {
-	Token                string
-	DiscoEndpoints       []string
-	ClientName           string
-	ClientEndpoints      []string
-	ClientMeta           map[string]any
-	ClientTimeout        time.Duration
-	ClientBreakThreshold uint
-	ClientRetryAttempts  uint
-	ClientRetryInterval  time.Duration
+	Token                  string
+	DiscoEndpoints         []string
+	ClientName             string
+	ClientEndpoints        []string
+	ClientMeta             map[string]any
+	ClientTimeout          time.Duration
+	ClientBreakThreshold   uint
+	ClientRetryAttempts    uint
+	ClientRetryInterval    time.Duration
+	PerformSslVerification bool
 }
 
 func EmptyConfig() *DiscoClientConfig {
 	return &DiscoClientConfig{
-		Token:                "",
-		DiscoEndpoints:       nil,
-		ClientName:           "",
-		ClientEndpoints:      nil,
-		ClientMeta:           nil,
-		ClientTimeout:        0,
-		ClientBreakThreshold: 0,
-		ClientRetryAttempts:  0,
-		ClientRetryInterval:  0,
+		Token:                  "",
+		DiscoEndpoints:         nil,
+		ClientName:             "",
+		ClientEndpoints:        nil,
+		ClientMeta:             nil,
+		ClientTimeout:          0,
+		ClientBreakThreshold:   0,
+		ClientRetryAttempts:    0,
+		ClientRetryInterval:    0,
+		PerformSslVerification: true,
 	}
 }
 
@@ -39,16 +41,21 @@ func DefaultConfig() *DiscoClientConfig {
 	}
 	t := getEnvString("DISCO_TOKEN")
 	return &DiscoClientConfig{
-		Token:                t,
-		DiscoEndpoints:       ep,
-		ClientName:           "",
-		ClientEndpoints:      nil,
-		ClientMeta:           nil,
-		ClientTimeout:        0,
-		ClientBreakThreshold: 0,
-		ClientRetryAttempts:  2,
-		ClientRetryInterval:  2 * time.Second,
+		Token:                  t,
+		DiscoEndpoints:         ep,
+		ClientName:             "",
+		ClientEndpoints:        nil,
+		ClientMeta:             nil,
+		ClientTimeout:          0,
+		ClientBreakThreshold:   0,
+		ClientRetryAttempts:    2,
+		ClientRetryInterval:    2 * time.Second,
+		PerformSslVerification: true,
 	}
+}
+func (dc *DiscoClientConfig) SkipSslVerify() *DiscoClientConfig {
+	dc.PerformSslVerification = false
+	return dc
 }
 
 func (dc *DiscoClientConfig) WithToken(token string) *DiscoClientConfig {
