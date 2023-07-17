@@ -13,10 +13,45 @@ func NewRegistry() DiscoRegistry {
 	return &registry{}
 }
 
+type ringBuffer struct {
+	sync.RWMutex
+	clientRing map[string]*ring.Ring
+}
+
+func newClientRing() *ringBuffer {
+	return &ringBuffer{
+		clientRing: make(map[string]*ring.Ring),
+	}
+}
+func (b *ringBuffer) Get(serviceId string) (*ring.Ring, bool) {
+	b.RLock()
+	v, ok := b.clientRing[serviceId]
+	b.RUnlock()
+	return v, ok
+}
+func (b *ringBuffer) New(serviceId string, size int) {
+	b.Lock()
+	b.clientRing[serviceId] = ring.New(size)
+	b.Unlock()
+}
+func (b *ringBuffer) Set(serviceId string, client Client) {
+	b.Lock()
+	b.clientRing[serviceId].Value = client
+	b.clientRing[serviceId] = b.clientRing[serviceId].Next()
+	b.Unlock()
+}
+func (b *ringBuffer) Next(serviceId string) (*ring.Ring, bool) {
+	b.Lock()
+	v, ok := b.clientRing[serviceId]
+	b.clientRing[serviceId] = b.clientRing[serviceId].Next()
+	b.Unlock()
+	return v, ok
+}
+
 type registry struct {
 	sync.RWMutex
 	clientList []Client
-	clientRing map[string]*ring.Ring
+	clientRing *ringBuffer
 }
 
 func (r *registry) Services() []string {
@@ -41,11 +76,11 @@ func (r *registry) Get(service string) (Client, error) {
 	service = strings.ToUpper(service)
 	r.RLock()
 	defer r.RUnlock()
-	v, ok := r.clientRing[service]
+	v, ok := r.clientRing.Get(service)
 	if !ok {
 		return nil, fmt.Errorf("no clients found for %s", service)
 	}
-	r.clientRing[service] = r.clientRing[service].Next()
+	r.clientRing.Next(service)
 	return v.Value.(Client), nil
 }
 func (r *registry) Sync(clients []Client) {
@@ -67,17 +102,16 @@ func (r *registry) Sync(clients []Client) {
 	}
 
 	// fill in clients ring (used for client-side load balancing)
-	r.clientRing = make(map[string]*ring.Ring)
+	r.clientRing = newClientRing()
 	for k, v := range svcs {
-		r.clientRing[k] = ring.New(len(v))
+		r.clientRing.New(k, len(v))
 		for _, c := range v {
-			r.clientRing[k].Value = c
-			r.clientRing[k] = r.clientRing[k].Next()
+			r.clientRing.Set(k, c)
 		}
 	}
 
 }
 func (r *registry) Reset() {
 	r.clientList = []Client{}
-	r.clientRing = map[string]*ring.Ring{}
+	r.clientRing = newClientRing()
 }
