@@ -197,7 +197,9 @@ func (dc *discoClientImpl) ping() (*disco.Pong, error) {
 	}
 
 	if err != nil {
-		if strings.Contains(err.Error(), "connection refused") {
+		// а вообще стоит внимательно подумать
+		// надо не сразу обнулять кэш, а только после нескольких неудачных ping'ов
+		if dc.networkError(err) {
 			dc.logger.Warning("[ping] ping error; reset clients cache: %s", err.Error())
 			dc.registry.Reset()
 			return &disco.Pong{}, nil
@@ -302,4 +304,8 @@ func (dc *discoClientImpl) processError(err error) error {
 	//}
 	//if strings.Contains(err.Error(), "service unreachable")
 	return err
+}
+func (dc *discoClientImpl) networkError(err error) bool {
+	return strings.Contains(err.Error(), "connection refused") ||
+		strings.Contains(err.Error(), "no such host")
 }
