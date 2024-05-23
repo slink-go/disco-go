@@ -6,7 +6,7 @@ import (
 	"fmt"
 	disco "github.com/slink-go/disco/common/api"
 	httpc "github.com/slink-go/httpclient"
-	"github.com/slink-go/logger"
+	"github.com/slink-go/logging"
 	"math/rand"
 	"net/http"
 	"os"
@@ -22,6 +22,7 @@ func NewDiscoHttpClient(config *DiscoClientConfig) (DiscoClient, error) {
 		config:     config,
 		httpClient: buildHttpClient(config),
 		registry:   NewRegistry(),
+		logger:     logging.GetLogger("disco-go"),
 	}
 	_, err := dClient.join(&disco.JoinRequest{
 		ServiceId: config.ClientName,
@@ -32,10 +33,10 @@ func NewDiscoHttpClient(config *DiscoClientConfig) (DiscoClient, error) {
 		return nil, err
 	}
 	if err = dClient.sync(); err != nil {
-		logger.Warning("sync error: %s", err.Error())
+		dClient.logger.Warning("[init] sync error: %s", err.Error())
 	}
 	go dClient.run()
-	go dClient.handleSignals(syscall.SIGINT, syscall.SIGTERM)
+	go dClient.handleSignals(syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	return dClient, nil
 }
 
@@ -43,7 +44,6 @@ func NewDiscoHttpClientPanicOnAuthError(config *DiscoClientConfig) DiscoClient {
 	for {
 		clnt, err := NewDiscoHttpClient(config)
 		if err != nil {
-			//logger.Warning("> %T", err)
 			switch err.(type) {
 			case *httpc.HttpError:
 				e := err.(*httpc.HttpError)
@@ -91,6 +91,7 @@ func buildHttpClient(config *DiscoClientConfig) httpc.Client {
 
 type discoClientImpl struct {
 	config       *DiscoClientConfig
+	logger       logging.Logger
 	httpClient   httpc.Client
 	clientId     string
 	pingInterval time.Duration
@@ -113,7 +114,7 @@ func (dc *discoClientImpl) join(request *disco.JoinRequest) (*disco.JoinResponse
 	var err error
 	var buf []byte
 
-	logger.Debug("[disco-go] try join '%s'", request.ServiceId)
+	dc.logger.Debug("[join] try join '%s'", request.ServiceId)
 	dc.joinRequest = request
 
 	buf, err = json.Marshal(request)
@@ -132,7 +133,7 @@ func (dc *discoClientImpl) join(request *disco.JoinRequest) (*disco.JoinResponse
 		m,
 	)
 	if err != nil {
-		//logger.Warning("[join] error: %s", err.Error())
+		dc.logger.Warning("[join] error: %s", err.Error())
 		return nil, err
 	}
 
@@ -143,43 +144,34 @@ func (dc *discoClientImpl) join(request *disco.JoinRequest) (*disco.JoinResponse
 	}
 	dc.clientId = jr.ClientId
 	dc.pingInterval = jr.PingInterval.Duration
-	logger.Debug("[join] client id: %s", dc.clientId)
+	dc.logger.Debug("[join][%s] connected to disco server", dc.clientId)
 	return &jr, nil
 }
 func (dc *discoClientImpl) run() {
 	dc.stopChn = make(chan struct{})
 	pingTicker := time.NewTicker(dc.pingInterval)
-	//syncTicker := time.NewTicker(time.Duration(10) * dc.pingInterval)
-	logger.Debug("[run][%s] started", dc.clientId)
+	dc.logger.Debug("[run][%s] started", dc.clientId)
 	for {
 		select {
 		case <-dc.stopChn:
-			logger.Debug("[run][%s] finished", dc.clientId)
+			dc.logger.Debug("[run][%s] finished", dc.clientId)
 			pingTicker.Stop()
-			//syncTicker.Stop()
 			return
-		default:
 		case _ = <-pingTicker.C:
 			pong, err := dc.ping()
+			dc.logger.Trace("ping response: %s", pong)
 			if err != nil {
-				logger.Warning("ping error: %s", err.Error())
+				dc.logger.Warning("ping error: %s", err.Error())
 				continue
 			}
 			if pong.Response == disco.PongTypeChanged {
-				logger.Debug("[run][%s] update clients list", dc.clientId)
-				// random jitter
-				time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+				dc.logger.Debug("[run][%s] update clients list", dc.clientId)
+				time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond) // add random jitter
 				err = dc.sync()
 				if err != nil {
-					logger.Warning("sync error: %s", err.Error())
+					dc.logger.Warning("sync error: %s", err.Error())
 				}
 			}
-			//	//case _ = <-syncTicker.C:
-			//	//	time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
-			//	//	err := dc.sync()
-			//	//	if err != nil {
-			//	//		logger.Warning("sync error: %s", err.Error())
-			//	//	}
 		}
 	}
 }
@@ -198,7 +190,7 @@ func (dc *discoClientImpl) ping() (*disco.Pong, error) {
 		}()
 		_, err = dc.join(dc.joinRequest)
 		if err != nil {
-			logger.Warning("[ping] could not reconnect: %s", err.Error())
+			dc.logger.Warning("[ping] could not reconnect: %s", err.Error())
 			return &disco.Pong{}, nil
 		}
 		return &disco.Pong{Response: disco.PongTypeChanged}, nil
@@ -206,7 +198,7 @@ func (dc *discoClientImpl) ping() (*disco.Pong, error) {
 
 	if err != nil {
 		if strings.Contains(err.Error(), "connection refused") {
-			logger.Warning("[ping] >>> PING ERROR, RESET CLIENTS CACHE: %s", err.Error())
+			dc.logger.Warning("[ping] ping error; reset clients cache: %s", err.Error())
 			dc.registry.Reset()
 			return &disco.Pong{}, nil
 		}
@@ -216,7 +208,7 @@ func (dc *discoClientImpl) ping() (*disco.Pong, error) {
 	var pong disco.Pong
 	err = json.Unmarshal(res, &pong)
 	if err != nil {
-		logger.Warning("[ping] unmarshall error: %s", err.Error())
+		dc.logger.Warning("[ping] unmarshall error: %s", err.Error())
 		return nil, err
 	}
 	//logger.Debug("[ping][%s] pong: %s %s", dc.clientId, pong.Response, pong.Error)
@@ -261,16 +253,23 @@ func (dc *discoClientImpl) sync() error {
 }
 
 func (dc *discoClientImpl) handleSignals(signals ...os.Signal) {
-	sigs := make(chan os.Signal, 1)
+	sigs := make(chan os.Signal)
 	signal.Notify(sigs, signals...)
-	done := make(chan bool, 1)
-	go func() {
+	for {
 		sig := <-sigs
-		logger.Debug("[signal] received %s signal", sig)
-		_ = dc.Leave()
-		done <- true
-	}()
-	<-done
+		switch sig {
+		case syscall.SIGINT:
+			fallthrough
+		case syscall.SIGKILL:
+			fallthrough
+		case syscall.SIGTERM:
+			dc.logger.Debug("[signal] received %s signal", sig)
+			dc.logger.Trace("[signal] leave")
+			_ = dc.Leave()
+			//time.Sleep(time.Millisecond * 100)
+			dc.logger.Trace("[signal] done")
+		}
+	}
 }
 
 // oneOf - calls first available endpoint from all endpoints configured for service
@@ -285,9 +284,9 @@ func (dc *discoClientImpl) oneOf(action string, call serviceCall, urlTemplate st
 			if errors.Is(err, &httpc.HttpError{}) ||
 				errors.Is(err, &httpc.ConnectionRefusedError{}) ||
 				errors.Is(err, &httpc.ServiceUnreachableError{}) {
-				logger.Warning("[%s][%s] service call error: message='%s', code=%d", action, dc.clientId, strings.TrimSpace(err.Error()), code)
+				dc.logger.Warning("[%s][%s] service call error: message='%s', code=%d", action, dc.clientId, strings.TrimSpace(err.Error()), code)
 			} else {
-				logger.Warning("[%s][%s] service call error: %s", action, dc.clientId, strings.TrimSpace(err.Error()))
+				dc.logger.Warning("[%s][%s] service call error: %s", action, dc.clientId, strings.TrimSpace(err.Error()))
 			}
 			continue
 		}

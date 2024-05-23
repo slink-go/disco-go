@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/slink-go/disco/common/api"
 	"github.com/slink-go/httpclient"
-	"github.com/slink-go/logger"
+	"github.com/slink-go/logging"
 	"net/http"
 )
 
@@ -20,31 +20,33 @@ func NewLbClient(reg DiscoRegistry, cln httpclient.Client) LoadBalancingHttpClie
 	return &lbHttpClient{
 		registry: reg,
 		client:   cln,
+		logger:   logging.GetLogger("lb-client"),
 	}
 }
 
 type lbHttpClient struct {
 	registry DiscoRegistry
 	client   httpclient.Client
+	logger   logging.Logger
 }
 
 func (c *lbHttpClient) geturl(inputUrl string) (url string, err error) {
 	proto, svc, path, _, err := parseUrl(inputUrl)
 	if err != nil {
 		url = inputUrl
-		logger.Debug("[disco-go] effective url: %s", url)
+		c.logger.Debug("[disco-go] effective url: %s", url)
 		return
 	}
 	clnt, err := c.registry.Get(svc)
 	if err != nil || clnt == nil {
 		url = inputUrl
-		logger.Debug("[disco-go] effective url: %s", url)
+		c.logger.Debug("[disco-go] effective url: %s", url)
 		return
 	}
 	u, err := clnt.Endpoint(proto)
 	if err != nil {
 		url = inputUrl
-		logger.Debug("[disco-go] effective url: %s", url)
+		c.logger.Debug("[disco-go] effective url: %s", url)
 		return
 	}
 	if proto == api.UnknownEndpoint {
@@ -53,12 +55,12 @@ func (c *lbHttpClient) geturl(inputUrl string) (url string, err error) {
 	if proto != api.HttpEndpoint && proto != api.HttpsEndpoint {
 		url = ""
 		err = fmt.Errorf("invalid protocol: %v", proto)
-		logger.Debug("[disco-go] effective url: %s", url)
+		c.logger.Debug("[disco-go] effective url: %s", url)
 		return
 	}
 	// TODO: handle trailing "/" in endpoint or missing "/" in path's beginning
 	url = fmt.Sprintf("%s/%s", u, path)
-	logger.Debug("[disco-go] effective url: %s", url)
+	c.logger.Debug("[disco-go] effective url: %s", url)
 	return
 }
 

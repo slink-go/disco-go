@@ -4,13 +4,15 @@ import (
 	"container/ring"
 	"fmt"
 	disco "github.com/slink-go/disco/common/api"
-	"github.com/slink-go/logger"
+	"github.com/slink-go/logging"
 	"strings"
 	"sync"
 )
 
 func NewRegistry() DiscoRegistry {
-	return &registry{}
+	return &registry{
+		logger: logging.GetLogger("disco-go-reg"),
+	}
 }
 
 type ringBuffer struct {
@@ -52,6 +54,7 @@ type registry struct {
 	sync.RWMutex
 	clientList []Client
 	clientRing *ringBuffer
+	logger     logging.Logger
 }
 
 func (r *registry) Services() []string {
@@ -89,7 +92,7 @@ func (r *registry) Sync(clients []Client) {
 	defer r.Unlock()
 
 	for _, v := range clients {
-		logger.Debug("[sync] %s (%s) %s", v.ClientId(), v.ServiceId(), v.State())
+		r.logger.Debug("[sync] %s (%s) %s", v.ClientId(), v.ServiceId(), v.State())
 	}
 
 	r.clientList = clients
