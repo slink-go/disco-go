@@ -76,8 +76,8 @@ func buildHttpClient(config *DiscoClientConfig) httpc.Client {
 	if config.ClientBreakThreshold > 0 {
 		clnt = clnt.WithBreaker(
 			config.ClientBreakThreshold,
-			time.Second,
-			15*time.Second,
+			time.Second,    // TODO: configurable variable
+			15*time.Second, // TODO: configurable variable
 		)
 	}
 	if config.ClientRetryAttempts > 0 && config.ClientRetryInterval > 0 {
@@ -170,6 +170,8 @@ func (dc *discoClientImpl) run() {
 				err = dc.sync()
 				if err != nil {
 					dc.logger.Warning("sync error: %s", err.Error())
+				} else if dc.config.UpdateNotificationChn != nil {
+					dc.config.UpdateNotificationChn <- struct{}{}
 				}
 			}
 		}
@@ -202,6 +204,9 @@ func (dc *discoClientImpl) ping() (*disco.Pong, error) {
 		if dc.networkError(err) {
 			dc.logger.Warning("[ping] ping error; reset clients cache: %s", err.Error())
 			dc.registry.Reset()
+			if dc.config.UpdateNotificationChn != nil {
+				dc.config.UpdateNotificationChn <- struct{}{}
+			}
 			return &disco.Pong{}, nil
 		}
 		return &disco.Pong{}, err

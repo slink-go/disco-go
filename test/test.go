@@ -18,16 +18,25 @@ func main() {
 	godotenv.Load(".env")
 
 	cfg := dg.DefaultConfig().
-		WithDisco([]string{"http://localhost:8762"}).
+		WithDisco([]string{"http://localhost:8771"}).
 		WithAuth("disco", "disco").
 		WithName("test").
 		WithEndpoints([]string{fmt.Sprintf("http://test:8080")}).
 		WithRetry(2, 1*time.Second)
 
-	_, err := connect(cfg)
+	cl, err := connect(cfg)
 	if err != nil {
 		panic("could not join disco")
 	}
+
+	go func() {
+		for range cfg.UpdateNotificationChn {
+			logging.GetLogger("updater").Warning("configuration updated")
+			for _, v := range cl.Registry().List() {
+				logging.GetLogger("updater").Warning("   > %s %s", v.ServiceId(), v.ClientId())
+			}
+		}
+	}()
 
 	app := fiber.New()
 

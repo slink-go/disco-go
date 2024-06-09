@@ -19,10 +19,11 @@ type DiscoClientConfig struct {
 	ClientRetryAttempts    uint
 	ClientRetryInterval    time.Duration
 	PerformSslVerification bool
+	UpdateNotificationChn  chan struct{}
 }
 
 func EmptyConfig() *DiscoClientConfig {
-	return &DiscoClientConfig{
+	config := &DiscoClientConfig{
 		Login:                  "",
 		Password:               "",
 		Token:                  "",
@@ -35,14 +36,16 @@ func EmptyConfig() *DiscoClientConfig {
 		ClientRetryAttempts:    0,
 		ClientRetryInterval:    0,
 		PerformSslVerification: true,
+		UpdateNotificationChn:  nil,
 	}
+	return config
 }
 func DefaultConfig() *DiscoClientConfig {
 	ep := getEnvStrings("DISCO_ENDPOINTS", ",")
 	t := getEnvString("DISCO_TOKEN")
 	l := getEnvString("DISCO_LOGIN")
 	p := getEnvString("DISCO_PASSWORD")
-	return &DiscoClientConfig{
+	config := &DiscoClientConfig{
 		Login:                  l,
 		Password:               p,
 		Token:                  t,
@@ -55,7 +58,9 @@ func DefaultConfig() *DiscoClientConfig {
 		ClientRetryAttempts:    2,
 		ClientRetryInterval:    2 * time.Second,
 		PerformSslVerification: true,
+		UpdateNotificationChn:  make(chan struct{}, 1),
 	}
+	return config
 }
 
 func (dc *DiscoClientConfig) SkipSslVerify() *DiscoClientConfig {
@@ -98,6 +103,10 @@ func (dc *DiscoClientConfig) WithBreaker(threshold uint) *DiscoClientConfig {
 func (dc *DiscoClientConfig) WithRetry(attempts uint, delay time.Duration) *DiscoClientConfig {
 	dc.ClientRetryAttempts = attempts
 	dc.ClientRetryInterval = delay
+	return dc
+}
+func (dc *DiscoClientConfig) WithNotificationChn(chn chan struct{}) *DiscoClientConfig {
+	dc.UpdateNotificationChn = chn
 	return dc
 }
 
