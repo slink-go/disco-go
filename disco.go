@@ -104,8 +104,11 @@ type discoClientImpl struct {
 func (dc *discoClientImpl) Leave() error {
 	dc.stopChn <- struct{}{}
 	close(dc.stopChn)
+	dc.stopChn = nil
+	dc.registry.Sync(nil)
 	return dc.leave()
 }
+
 func (dc *discoClientImpl) Registry() DiscoRegistry {
 	return dc.registry
 }
@@ -273,7 +276,8 @@ func (dc *discoClientImpl) handleSignals(signals ...os.Signal) {
 			dc.logger.Debug("[signal] received %s signal", sig)
 			dc.logger.Trace("[signal] leave")
 			_ = dc.Leave()
-			//time.Sleep(time.Millisecond * 100)
+			signal.Stop(sigs)
+			close(sigs)
 			dc.logger.Trace("[signal] done")
 		}
 	}
