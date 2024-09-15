@@ -36,7 +36,7 @@ func main() {
 	signal.Notify(quitChn, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
 
 	tm := time.NewTimer(time.Second * 10)
-	var i = 0
+	//var i = 0
 	for {
 		select {
 		case <-tm.C:
@@ -44,12 +44,12 @@ func main() {
 				fmt.Println(v)
 			}
 		case <-quitChn:
-			if i > 1 {
-				tm.Stop()
-				//cl.Leave()
-				return
-			}
-			i++
+			//if i > 1 {
+			tm.Stop()
+			//cl.Leave()
+			return
+			//}
+			//i++
 		}
 	}
 

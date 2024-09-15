@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	disco "github.com/slink-go/disco/common/api"
+	disco "github.com/slink-go/disco/pkg/api"
 	httpc "github.com/slink-go/httpclient"
 	"github.com/slink-go/logging"
 	"math/rand"
@@ -23,6 +23,7 @@ func NewDiscoHttpClient(config *DiscoClientConfig) (DiscoClient, error) {
 		httpClient: buildHttpClient(config),
 		registry:   NewRegistry(),
 		logger:     logging.GetLogger("disco-go"),
+		updChn:     config.UpdateNotificationChn,
 	}
 	_, err := dClient.join(&disco.JoinRequest{
 		ServiceId: config.ClientName,
@@ -95,18 +96,26 @@ type discoClientImpl struct {
 	httpClient   httpc.Client
 	clientId     string
 	pingInterval time.Duration
-	stopChn      chan struct{}
 	joinRequest  *disco.JoinRequest
 	registry     DiscoRegistry
 	mutex        sync.Mutex
+	stopChn      chan struct{}
+	updChn       chan struct{}
 }
 
 func (dc *discoClientImpl) Leave() error {
+	dc.logger.Trace("[Leave] enter")
 	dc.stopChn <- struct{}{}
 	close(dc.stopChn)
 	dc.stopChn = nil
+	if dc.updChn != nil {
+		dc.logger.Trace("[Leave] close updates channel")
+		close(dc.updChn)
+	}
 	dc.registry.Sync(nil)
-	return dc.leave()
+	err := dc.leave()
+	dc.logger.Trace("[Leave] exit")
+	return err
 }
 
 func (dc *discoClientImpl) Registry() DiscoRegistry {
@@ -162,7 +171,7 @@ func (dc *discoClientImpl) run() {
 			return
 		case _ = <-pingTicker.C:
 			pong, err := dc.ping()
-			dc.logger.Trace("ping response: %s", pong)
+			dc.logger.Trace("[run][%s] ping response: %s", dc.clientId, pong)
 			if err != nil {
 				dc.logger.Warning("ping error: %s", err.Error())
 				continue
@@ -172,7 +181,7 @@ func (dc *discoClientImpl) run() {
 				time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond) // add random jitter
 				err = dc.sync()
 				if err != nil {
-					dc.logger.Warning("sync error: %s", err.Error())
+					dc.logger.Warning("[run][%s] sync error: %s", dc.clientId, err.Error())
 				} else if dc.config.UpdateNotificationChn != nil {
 					dc.config.UpdateNotificationChn <- struct{}{}
 				}
@@ -218,7 +227,7 @@ func (dc *discoClientImpl) ping() (*disco.Pong, error) {
 	var pong disco.Pong
 	err = json.Unmarshal(res, &pong)
 	if err != nil {
-		dc.logger.Warning("[ping] unmarshall error: %s", err.Error())
+		dc.logger.Warning("[ping][%s] unmarshall error: %s", dc.clientId, err.Error())
 		return nil, err
 	}
 	//logger.Debug("[ping][%s] pong: %s %s", dc.clientId, pong.Response, pong.Error)
@@ -279,6 +288,7 @@ func (dc *discoClientImpl) handleSignals(signals ...os.Signal) {
 			signal.Stop(sigs)
 			close(sigs)
 			dc.logger.Trace("[signal] done")
+			return
 		}
 	}
 }

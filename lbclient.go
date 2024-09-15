@@ -3,7 +3,7 @@ package disco_go
 import (
 	"errors"
 	"fmt"
-	"github.com/slink-go/disco/common/api"
+	"github.com/slink-go/disco/pkg/api"
 	"github.com/slink-go/httpclient"
 	"github.com/slink-go/logging"
 	"net/http"

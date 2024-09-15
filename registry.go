@@ -3,7 +3,7 @@ package disco_go
 import (
 	"container/ring"
 	"fmt"
-	disco "github.com/slink-go/disco/common/api"
+	disco "github.com/slink-go/disco/pkg/api"
 	"github.com/slink-go/logging"
 	"strings"
 	"sync"
